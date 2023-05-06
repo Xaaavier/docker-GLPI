@@ -1,0 +1,115 @@
+version: '3.9'
+
+services:
+  glpi-webserver:
+    image: 
+      glpi-nginx 
+    container_name: 
+      glpi-webserver
+    environment:
+      TZ: Europe/Paris
+    hostname: 
+      webserver
+    networks:
+      front_glpi:
+      back_glpi:
+        ipv4_address: 10.5.0.1
+    depends_on:
+      - glpi-phpserver
+      - glpi-redisserver
+    ports:
+      - "80:80"
+    volumes:
+      - ./config/nginx/config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/config/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./config/glpi/local_define.php:/etc/glpi/local_define.php:rw
+      - /srv/www/glpi/update:/var/www/html/glpi:rw
+      - /srv/www/glpi/noupdate/config:/etc/glpi:rw
+      - /srv/www/glpi/noupdate/files:/var/lib/glpi:rw
+      - /var/log/nginx:/var/log/nginx:rw
+    restart:
+      on-failure
+
+  glpi-phpserver:
+#    build: 
+#      $(pwd)/config/php
+    image: 
+      glpi-php
+    container_name: 
+      glpi-phpserver
+    environment:
+      TZ: Europe/Paris
+    hostname: 
+      phpserver
+    networks:
+      back_glpi:
+        ipv4_address: 10.5.0.2
+    depends_on:
+      - glpi-databaseserver
+      - glpi-redisserver
+    volumes:
+      - ./config/php/config/www.conf:/usr/local/etc/php-fpm.d/fpm.conf:ro
+      - ./config/php/config/php.ini:/usr/local/etc/php/conf.d/php.ini:ro
+      - ./config/glpi/local_define.php:/etc/glpi/local_define.php:rw
+      - /srv/www/glpi/update:/var/www/html/glpi:rw
+      - /srv/www/glpi/noupdate/config:/etc/glpi:rw
+      - /srv/www/glpi/noupdate/files:/var/lib/glpi:rw
+      - /var/log/php:/var/log/php:rw
+      - /var/log/glpi:/var/log/glpi:rw
+    restart:
+      on-failure
+
+  glpi-redisserver:
+#   build: 
+#      $(pwd)/config/redis
+    image: 
+      glpi-redis
+    container_name: 
+      glpi-redisserver
+    environment:
+      TZ: Europe/Paris
+    hostname: 
+      redisserver
+    networks:
+      back_glpi:
+        ipv4_address: 10.5.0.4
+    depends_on:
+      - glpi-databaseserver
+    volumes:
+      - ./config/redis/config/redis.conf:/usr/local/etc/redis/redis.conf
+    restart:
+      on-failure
+
+  glpi-databaseserver:
+#    build: 
+#      $(pwd)/config/mariadb
+    image: 
+      glpi-mariadb
+    container_name: 
+      glpi-databaseserver
+    environment:
+      TZ: Europe/Paris
+      MYSQL_ROOT_PASSWORD: MYSQL_ROOT_PWD
+      MYSQL_DATABASE: DATABASENAME
+      MYSQL_USER: USERNAME 
+      MYSQL_PASSWORD: MYSQL_USER_PWD
+    hostname: 
+      databaseserver
+    networks:
+      back_glpi:
+        ipv4_address: 10.5.0.3
+    volumes:
+      - ./config/mariadb/config/mariadb-server.cnf:/etc/my.cnf.d/mariadb-server.cnf:ro
+      - /srv/www/glpi/mariadb:/var/lib/mysql:rw
+      - /var/log/mysql:/var/log/mysql:rw
+    restart:
+      on-failure
+
+networks:
+  front_glpi:
+  back_glpi:
+    ipam:
+      driver: default
+      config:
+        - subnet: "10.5.0.0/29"
+          gateway: 10.5.0.6

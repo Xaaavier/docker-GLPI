@@ -1,0 +1,28 @@
+[server]
+
+[mysqld]
+skip-name-resolve
+skip-networking
+optimizer_switch='mrr=on'
+optimizer_switch='mrr_cost_based=off'
+log_error = /var/log/mysql/error.log
+max_binlog_size   = 10M
+tmp_table_size=64M
+max_heap_table_size=64M
+query_cache_size=64M
+slow-query-log=1
+slow-query-log-file= /var/lib/mysql/mysql-slow-query.log
+long-query-time=1
+
+[galera]
+bind-address=10.5.0.3
+
+[embedded]
+
+[mariadb]
+join_cache_level=8
+join_buffer_size=8M
+mrr_buffer_size=8M
+
+[mariadb-10.5]
+default-authentication-plugin  = mysql_native_password
